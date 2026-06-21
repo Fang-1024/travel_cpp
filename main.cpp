@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include "log.h"
+#include "error_code.h"
 
 int main(int argc, char *argv[]) {
     LOG_INFO("Start!");
