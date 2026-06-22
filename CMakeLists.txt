@@ -12,3 +12,4 @@ add_executable(gtest_demo
 )
 target_link_libraries(gtest_demo lib_log)
 target_link_libraries(gtest_demo error_code)
+target_link_libraries(gtest_demo get_input)
