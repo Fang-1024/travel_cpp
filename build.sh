@@ -92,6 +92,30 @@ APP_NAME="gtest_demo"
 #   编译优化更强，适合发布运行，但不适合初学阶段调试。
 BUILD_TYPE="${BUILD_TYPE:-Debug}"
 
+# 是否启用单元测试。
+#
+# ON:
+#   CMake 会配置 tests/ 目录，并通过 FetchContent 获取 GoogleTest。
+#
+# OFF:
+#   只构建主程序，不构建测试目标。
+#
+# RK3588 板端第一次启用 ON 时，需要能访问 GitHub，
+# 因为 FetchContent 会下载 GoogleTest。
+BUILD_TESTING="${BUILD_TESTING:-ON}"
+
+
+# 是否在构建完成后立即运行 ctest。
+#
+# 1:
+#   构建完成后运行所有单元测试。
+#
+# 0:
+#   只构建，不运行测试。
+#
+# 调试某个测试时可以先设为 0，然后手动用 gdb 启动测试程序。
+RUN_TESTS="${RUN_TESTS:-1}"
+
 
 # 把 BUILD_TYPE 转成小写。
 # 例如：
@@ -196,7 +220,8 @@ fi
 echo "Configuring project..."
 cmake -S "${SCRIPT_DIR}" -B "${BUILD_DIR}" \
     -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+    -DBUILD_TESTING="${BUILD_TESTING}"
 
 
 # ------------------------------------------------------------
@@ -229,7 +254,7 @@ cmake --build "${BUILD_DIR}" --parallel "${JOBS}"
 #   1. CMakeLists.txt 里的目标名可能改了；
 #   2. APP_NAME 可能没有同步修改；
 #   3. 构建过程可能有问题。
-APP_PATH="${BUILD_DIR}/${APP_NAME}"
+APP_PATH="${BUILD_DIR}/bin/${APP_NAME}"
 
 if [[ ! -x "${APP_PATH}" ]]; then
     echo "Error: executable not found: ${APP_PATH}" >&2
@@ -237,9 +262,27 @@ if [[ ! -x "${APP_PATH}" ]]; then
     exit 1
 fi
 
+# ------------------------------------------------------------
+# 九、运行单元测试
+# ------------------------------------------------------------
+# ctest 是 CMake 自带的测试运行器。
+#
+# 这里用 cmake -E chdir 切换到构建目录再运行 ctest，
+# 等价于：
+#   cd build/debug
+#   ctest --output-on-failure
+#
+# --output-on-failure:
+#   只有测试失败时才打印详细输出，平时输出更干净。
+if [[ "${BUILD_TESTING}" != "OFF" && "${RUN_TESTS}" == "1" ]]; then
+    echo
+    echo "Running unit tests..."
+    cmake -E chdir "${BUILD_DIR}" ctest --output-on-failure
+fi
+
 
 # ------------------------------------------------------------
-# 九、准备部署目录
+# 十、准备部署目录
 # ------------------------------------------------------------
 # mkdir -p:
 #   如果目录不存在，就创建；
@@ -259,11 +302,19 @@ cp "${APP_PATH}" "${DEPLOY_DIR}/bin/"
 # 十、打印使用提示
 # ------------------------------------------------------------
 echo
-echo "Build finished."
-echo "Executable: ${DEPLOY_DIR}/bin/${APP_NAME}"
-echo
-echo "Run:"
+echo "Run app:"
 echo "  ${DEPLOY_DIR}/bin/${APP_NAME} --test_mode=demo"
-echo
-echo "Debug:"
-echo "  gdb --args ${DEPLOY_DIR}/bin/${APP_NAME} --test_mode=demo"
+
+if [[ "${BUILD_TESTING}" != "OFF" ]]; then
+    echo
+    echo "Run all unit tests:"
+    echo "  cmake -E chdir ${BUILD_DIR} ctest --output-on-failure"
+
+    echo
+    echo "Run get_input_test directly:"
+    echo "  ${BUILD_DIR}/bin/get_input_test"
+
+    echo
+    echo "Debug one test case:"
+    echo "  gdb --args ${BUILD_DIR}/bin/get_input_test --gtest_filter=GetInputTest.ReadLongOptionEqualForm"
+fi
