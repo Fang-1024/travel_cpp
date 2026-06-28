@@ -1,0 +1,23 @@
+# CMake build outputs
+/build/
+/cmake-build-*/
+
+# Deploy outputs
+/deploy/
+
+# CMake files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# Binary outputs
+*.o
+*.a
+*.so
+*.out
+
+# Editor
+.vscode/
+.idea/
