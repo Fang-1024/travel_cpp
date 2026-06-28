@@ -59,13 +59,11 @@
 #define MINI_LOG_PRINTF_ATTR(fmt_index, first_arg_index)
 #endif
 
-namespace mini_log
-{
+namespace mini_log {
     // =========================================================================
     // 3) 日志级别：强枚举（enum class）
     // =========================================================================
-    enum class Level : int
-    {
+    enum class Level : int {
         Debug = 0,
         Info = 1,
         Warn = 2,
@@ -92,34 +90,29 @@ namespace mini_log
     // 例：
     //   LOG_DEBUG("big=%s", MakeHugeString().c_str());
     // 当 Debug 被过滤时，MakeHugeString() 不会被调用。
-    constexpr bool should_log(Level lv) noexcept
-    {
+    constexpr bool should_log(Level lv) noexcept {
         return static_cast<int>(lv) >= static_cast<int>(MINI_LOG_MIN_LEVEL);
     }
 
     // =========================================================================
     // 6) 不同级别输出到哪个流（与你旧版一致）
     // =========================================================================
-    inline std::ostream& stream_for(const Level lv)
-    {
-        switch (lv)
-        {
-        case Level::Error:
-        case Level::Warn:
-            return std::cerr;
-        default:
-            return std::cout;
+    inline std::ostream &stream_for(const Level lv) {
+        switch (lv) {
+            case Level::Error:
+            case Level::Warn:
+                return std::cerr;
+            default:
+                return std::cout;
         }
     }
 
-    inline const char* to_string(const Level lv)
-    {
-        switch (lv)
-        {
-        case Level::Debug: return "DEBUG";
-        case Level::Info: return "INFO";
-        case Level::Warn: return "WARN";
-        case Level::Error: return "ERROR";
+    inline const char *to_string(const Level lv) {
+        switch (lv) {
+            case Level::Debug: return "DEBUG";
+            case Level::Info: return "INFO";
+            case Level::Warn: return "WARN";
+            case Level::Error: return "ERROR";
         }
         return "?";
     }
@@ -127,12 +120,11 @@ namespace mini_log
     // =========================================================================
     // 7) 时间字符串（到毫秒）—— 你旧版逻辑保留
     // =========================================================================
-    inline std::string now_string()
-    {
+    inline std::string now_string() {
         const auto tp = std::chrono::system_clock::now();
         const auto secs = std::chrono::time_point_cast<std::chrono::seconds>(tp);
         const auto ms =
-            std::chrono::duration_cast<std::chrono::milliseconds>(tp - secs).count();
+                std::chrono::duration_cast<std::chrono::milliseconds>(tp - secs).count();
 
         std::time_t tt = std::chrono::system_clock::to_time_t(tp);
 
@@ -145,16 +137,15 @@ namespace mini_log
 
         std::ostringstream oss;
         oss << std::put_time(&tm_snapshot, "%Y-%m-%d %H:%M:%S")
-            << '.'
-            << std::setfill('0') << std::setw(3) << ms;
+                << '.'
+                << std::setfill('0') << std::setw(3) << ms;
         return oss.str();
     }
 
     // =========================================================================
     // 8) 线程 id 的“短显示”—— 你旧版逻辑保留
     // =========================================================================
-    inline unsigned long thread_id_short()
-    {
+    inline unsigned long thread_id_short() {
         std::ostringstream oss;
         oss << std::this_thread::get_id();
         unsigned long x = 0;
@@ -166,8 +157,7 @@ namespace mini_log
     // 9) 全局互斥锁：保证“整行日志原子输出”
     // =========================================================================
     // magic statics：C++11 起局部 static 初始化线程安全
-    inline std::mutex& log_mutex()
-    {
+    inline std::mutex &log_mutex() {
         static std::mutex m;
         return m;
     }
@@ -183,8 +173,7 @@ namespace mini_log
     // 我们采用“两段式”策略：
     // 1) 先用一个栈上小缓冲（避免频繁堆分配）
     // 2) 如果不够，再按需要大小堆分配一次
-    inline std::string vformat_printf(const char* fmt, std::va_list ap)
-    {
+    inline std::string vformat_printf(const char *fmt, std::va_list ap) {
         if (!fmt) return std::string{"<null fmt>"};
 
         // ---- 1) 栈上小缓冲：大多数日志足够容纳 ----
@@ -196,16 +185,14 @@ namespace mini_log
         const int n1 = std::vsnprintf(stack_buf, sizeof(stack_buf), fmt, ap_copy);
         va_end(ap_copy);
 
-        if (n1 < 0)
-        {
+        if (n1 < 0) {
             // 格式化失败（格式串错误等）
             return std::string{"<format error>"};
         }
 
         // n1 是“需要的字符数（不含 '\0'）”
         // 若 n1 < sizeof(stack_buf)，说明栈缓冲足够，stack_buf 内是完整字符串
-        if (static_cast<std::size_t>(n1) < sizeof(stack_buf))
-        {
+        if (static_cast<std::size_t>(n1) < sizeof(stack_buf)) {
             return std::string(stack_buf, static_cast<std::size_t>(n1));
         }
 
@@ -218,8 +205,7 @@ namespace mini_log
         const int n2 = std::vsnprintf(heap_buf.data(), heap_buf.size(), fmt, ap_copy2);
         va_end(ap_copy2);
 
-        if (n2 < 0)
-        {
+        if (n2 < 0) {
             return std::string{"<format error>"};
         }
 
@@ -232,23 +218,22 @@ namespace mini_log
     // 11) 最终输出：组装并打印一行日志（线程安全 + flush）
     // =========================================================================
     inline void log_impl(Level lv,
-                         const char* file,
+                         const char *file,
                          int line,
-                         const char* func,
-                         const std::string& text)
-    {
+                         const char *func,
+                         const std::string &text) {
         // 这里不再做 level 过滤：上层（宏/调用方）已经过滤过
         std::lock_guard lk(log_mutex());
 
-        auto& os = stream_for(lv);
+        auto &os = stream_for(lv);
 
         os << '[' << now_string() << ']'
-            << " [" << to_string(lv) << ']'
-            << " [T" << thread_id_short() << ']'
-            << ' ' << (file ? file : "<null-file>") << ':' << line
-            << " | " << (func ? func : "<null-func>")
-            << " | " << text
-            << '\n';
+                << " [" << to_string(lv) << ']'
+                << " [T" << thread_id_short() << ']'
+                << ' ' << (file ? file : "<null-file>") << ':' << line
+                << " | " << (func ? func : "<null-func>")
+                << " | " << text
+                << '\n';
 
         // 主动 flush：更利于崩溃前看到日志；代价是性能略低（教学/调试场景可接受）
         os.flush();
@@ -263,17 +248,16 @@ namespace mini_log
     // - 先格式化，再统一交给 log_impl 输出
     // - GCC/Clang 下启用 printf 格式串编译期检查
     inline void logf(Level lv,
-                     const char* file,
+                     const char *file,
                      int line,
-                     const char* func,
-                     const char* fmt, ...) MINI_LOG_PRINTF_ATTR(5, 6);
+                     const char *func,
+                     const char *fmt, ...) MINI_LOG_PRINTF_ATTR(5, 6);
 
     inline void logf(Level lv,
-                     const char* file,
+                     const char *file,
                      int line,
-                     const char* func,
-                     const char* fmt, ...)
-    {
+                     const char *func,
+                     const char *fmt, ...) {
         if (!should_log(lv))
             return;
 
@@ -291,9 +275,8 @@ namespace mini_log
     // 用途：当你以前写 LOG_DEBUG(obj); 依赖 operator<< 时，
     // 现在可以写：
     //   LOG_DEBUG("%s", ::mini_log::to_string_stream(obj).c_str());
-    template <class T>
-    inline std::string to_string_stream(const T& v)
-    {
+    template<class T>
+    inline std::string to_string_stream(const T &v) {
         std::ostringstream oss;
         oss << v;
         return oss.str();

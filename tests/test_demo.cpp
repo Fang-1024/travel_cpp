@@ -7,7 +7,6 @@
 #include "get_input.h"
 
 namespace {
-
     // ------------------------------------------------------------------
     // ArgvCase：给 get_input 构造一个“像 main(argc, argv) 一样”的测试输入。
     // ------------------------------------------------------------------
@@ -30,8 +29,8 @@ namespace {
         int argc = 0;
 
         explicit ArgvCase(std::vector<std::string> args)
-                : storage(std::move(args)),
-                  argc(static_cast<int>(storage.size())) {
+            : storage(std::move(args)),
+              argc(static_cast<int>(storage.size())) {
             argv.reserve(storage.size() + 1);
 
             for (std::string &arg: storage) {
@@ -43,15 +42,14 @@ namespace {
             argv.push_back(nullptr);
         }
     };
-
 } // namespace
 
 TEST(GetInputTest, ReadLongOptionEqualForm) {
     ArgvCase args({
-                          "app",
-                          "--name=alice",
-                          "--other",
-                  });
+        "app",
+        "--name=alice",
+        "--other",
+    });
 
     std::string output;
     const auto code = input_args::get_input(args.argc, args.argv.data(), "--name", output);
@@ -68,11 +66,11 @@ TEST(GetInputTest, ReadLongOptionEqualForm) {
 
 TEST(GetInputTest, ReadLongOptionSeparatedForm) {
     ArgvCase args({
-                          "app",
-                          "--name",
-                          "alice",
-                          "--other",
-                  });
+        "app",
+        "--name",
+        "alice",
+        "--other",
+    });
 
     std::string output;
     const auto code = input_args::get_input(args.argc, args.argv.data(), "--name", output);
@@ -89,10 +87,10 @@ TEST(GetInputTest, ReadLongOptionSeparatedForm) {
 
 TEST(GetInputTest, ReadShortOptionSeparatedForm) {
     ArgvCase args({
-                          "app",
-                          "-n",
-                          "alice",
-                  });
+        "app",
+        "-n",
+        "alice",
+    });
 
     std::string output;
     const auto code = input_args::get_input(args.argc, args.argv.data(), "-n", output);
@@ -107,10 +105,10 @@ TEST(GetInputTest, ReadShortOptionSeparatedForm) {
 
 TEST(GetInputTest, ReturnUnknownWhenOptionDoesNotExist) {
     ArgvCase args({
-                          "app",
-                          "--other",
-                          "value",
-                  });
+        "app",
+        "--other",
+        "value",
+    });
 
     std::string output = "unchanged";
     const auto code = input_args::get_input(args.argc, args.argv.data(), "--name", output);
@@ -129,9 +127,9 @@ TEST(GetInputTest, ReturnUnknownWhenOptionDoesNotExist) {
 
 TEST(GetInputTest, ReturnUnknownWhenOptionHasNoValue) {
     ArgvCase args({
-                          "app",
-                          "--name",
-                  });
+        "app",
+        "--name",
+    });
 
     std::string output;
     const auto code = input_args::get_input(args.argc, args.argv.data(), "--name", output);
@@ -141,10 +139,10 @@ TEST(GetInputTest, ReturnUnknownWhenOptionHasNoValue) {
 
 TEST(GetInputTest, ReturnParseFailedWhenNextArgumentLooksLikeOption) {
     ArgvCase args({
-                          "app",
-                          "--name",
-                          "--other",
-                  });
+        "app",
+        "--name",
+        "--other",
+    });
 
     std::string output;
     const auto code = input_args::get_input(args.argc, args.argv.data(), "--name", output);
@@ -156,16 +154,16 @@ TEST(GetInputTest, ReturnParseFailedWhenNextArgumentLooksLikeOption) {
 
 TEST(GetInputTest, SupportMultipleCandidateOptionNames) {
     ArgvCase args({
-                          "app",
-                          "-n=bob",
-                  });
+        "app",
+        "-n=bob",
+    });
 
     std::string output;
     const auto code = input_args::get_input(
-            args.argc,
-            args.argv.data(),
-            std::vector<std::string>{"--name", "-n"},
-            output
+        args.argc,
+        args.argv.data(),
+        std::vector<std::string>{"--name", "-n"},
+        output
     );
 
     EXPECT_EQ(error_code::ErrorCode::Ok, code);
