@@ -35,4 +35,4 @@ namespace error_code {
 
         return "UnknownErrorCode";
     }
-} // namespace learn_cpp::error_code
+} // namespace error_code

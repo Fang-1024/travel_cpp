@@ -13,11 +13,7 @@ namespace {
     }
 
     bool is_option_like(const std::string &text) {
-        // 简单判断是否像一个命令行选项。
-        // 这样可以避免 "--a --b value" 时，把 "--b" 错误当成 --a 的值。
-        //
-        // 如果 value 本身确实以 '-' 开头，建议使用：
-        //   --num=-1
+        // 避免把 "--a --b" 里的 "--b" 误当成 "--a" 的值；负数请使用 "--num=-1"。
         return text.size() >= 2 && text[0] == '-';
     }
 
@@ -49,8 +45,7 @@ namespace {
 
         argc = write_index;
 
-        // argv[argc] 按惯例应为 nullptr。
-        // 这里主动维护，方便后续流程按 C 风格遍历 argv。
+        // 主动维护 argv[argc]，方便后续代码继续按 C 风格遍历参数。
         argv[argc] = nullptr;
     }
 }
@@ -66,7 +61,7 @@ namespace input_args {
         int erase_count = 0;
         std::string found_value{};
 
-        // argv[0] 是程序名，从 argv[1] 开始解析。
+        // argv[0] 是程序名，不参与选项解析。
         for (int i = 1; i < argc; ++i) {
             if (argv[i] == nullptr) {
                 continue;
@@ -79,7 +74,7 @@ namespace input_args {
                     continue;
                 }
 
-                // 形式一：--name=value 或 -n=value
+                // --name=value 或 -n=value
                 std::string value_from_equal;
                 if (try_get_value_from_equal_form(current_arg, option_name, value_from_equal)) {
                     found_index = i;
@@ -88,7 +83,7 @@ namespace input_args {
                     break;
                 }
 
-                // 形式二：--name value 或 -n value
+                // --name value 或 -n value
                 if (current_arg == option_name) {
                     if (i + 1 >= argc || argv[i + 1] == nullptr) {
                         return error_code::ErrorCode::Unknown;
@@ -124,4 +119,4 @@ namespace input_args {
     error_code::ErrorCode get_input(int &argc, char *argv[], const std::string &option_name, std::string &output) {
         return get_input(argc, argv, std::vector<std::string>{option_name}, output);
     }
-}
+} // namespace input_args
