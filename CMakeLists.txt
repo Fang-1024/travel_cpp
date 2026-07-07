@@ -30,20 +30,11 @@ install(TARGETS gtest_demo
 # CTest 提供 BUILD_TESTING 开关；远端只运行 demo 时可以设为 OFF。
 include(CTest)
 
-if(BUILD_TESTING)
-    include(FetchContent)
-
-    # gtest 只用于测试目标，不应出现在 demo 的安装结果中。
-    set(INSTALL_GTEST OFF CACHE BOOL "Do not install GoogleTest with this project" FORCE)
-
-    FetchContent_Declare(
-            googletest
-            GIT_REPOSITORY https://github.com/google/googletest.git
-            GIT_TAG v1.17.0
-    )
-
-    FetchContent_MakeAvailable(googletest)
+if (BUILD_TESTING)
+    # 使用本机已经安装好的 GoogleTest，CONFIG 表示优先使用 GoogleTest 安装时生成的 GTestConfig.cmake，
+    # 而不是再通过 FetchContent 从 GitHub 拉取源码。
+    find_package(GTest 1.17.0 EXACT REQUIRED CONFIG)
 
     # 测试目标独立放在 tests/，避免和主程序入口混在一起。
     add_subdirectory(tests)
-endif()
+endif ()
