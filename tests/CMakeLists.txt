@@ -8,7 +8,7 @@ target_link_libraries(test_demo
         get_input
         error_code
         lib_log
-        GTest::gtest_main
+        ${TRAVEL_GTEST_MAIN_TARGET}
 )
 
 include(GoogleTest)
