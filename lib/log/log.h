@@ -32,8 +32,10 @@
 #define MINI_LOG_PRINTF_ATTR(fmt_index, first_arg_index)
 #endif
 
-namespace mini_log {
-    enum class Level : int {
+namespace mini_log
+{
+    enum class Level : int
+    {
         Debug = 0,
         Info = 1,
         Warn = 2,
@@ -47,36 +49,42 @@ namespace mini_log {
 #endif
 
     // 供宏先判断日志级别，避免被过滤日志的参数求值和格式化开销。
-    constexpr bool should_log(Level lv) noexcept {
+    constexpr bool should_log(Level lv) noexcept
+    {
         return static_cast<int>(lv) >= static_cast<int>(MINI_LOG_MIN_LEVEL);
     }
 
-    inline std::ostream &stream_for(const Level lv) {
-        switch (lv) {
-            case Level::Error:
-            case Level::Warn:
-                return std::cerr;
-            default:
-                return std::cout;
+    inline std::ostream& stream_for(const Level lv)
+    {
+        switch (lv)
+        {
+        case Level::Error:
+        case Level::Warn:
+            return std::cerr;
+        default:
+            return std::cout;
         }
     }
 
-    inline const char *to_string(const Level lv) {
-        switch (lv) {
-            case Level::Debug: return "DEBUG";
-            case Level::Info: return "INFO";
-            case Level::Warn: return "WARN";
-            case Level::Error: return "ERROR";
+    inline const char* to_string(const Level lv)
+    {
+        switch (lv)
+        {
+        case Level::Debug: return "DEBUG";
+        case Level::Info: return "INFO";
+        case Level::Warn: return "WARN";
+        case Level::Error: return "ERROR";
         }
         return "?";
     }
 
     // 使用线程安全的 localtime_s/localtime_r，保证多线程日志时间戳可靠。
-    inline std::string now_string() {
+    inline std::string now_string()
+    {
         const auto tp = std::chrono::system_clock::now();
         const auto secs = std::chrono::time_point_cast<std::chrono::seconds>(tp);
         const auto ms =
-                std::chrono::duration_cast<std::chrono::milliseconds>(tp - secs).count();
+            std::chrono::duration_cast<std::chrono::milliseconds>(tp - secs).count();
 
         std::time_t tt = std::chrono::system_clock::to_time_t(tp);
 
@@ -89,13 +97,14 @@ namespace mini_log {
 
         std::ostringstream oss;
         oss << std::put_time(&tm_snapshot, "%Y-%m-%d %H:%M:%S")
-                << '.'
-                << std::setfill('0') << std::setw(3) << ms;
+            << '.'
+            << std::setfill('0') << std::setw(3) << ms;
         return oss.str();
     }
 
     // 仅用于日志显示，不承诺等同于操作系统线程 ID。
-    inline unsigned long thread_id_short() {
+    inline unsigned long thread_id_short()
+    {
         std::ostringstream oss;
         oss << std::this_thread::get_id();
         unsigned long x = 0;
@@ -104,13 +113,15 @@ namespace mini_log {
     }
 
     // 保护整行日志输出，避免多线程写同一行时相互穿插。
-    inline std::mutex &log_mutex() {
+    inline std::mutex& log_mutex()
+    {
         static std::mutex m;
         return m;
     }
 
     // 先尝试栈缓冲，放不下时再按 vsnprintf 返回的准确长度分配堆缓冲。
-    inline std::string vformat_printf(const char *fmt, std::va_list ap) {
+    inline std::string vformat_printf(const char* fmt, std::va_list ap)
+    {
         if (!fmt) return std::string{"<null fmt>"};
 
         char stack_buf[512];
@@ -121,11 +132,13 @@ namespace mini_log {
         const int n1 = std::vsnprintf(stack_buf, sizeof(stack_buf), fmt, ap_copy);
         va_end(ap_copy);
 
-        if (n1 < 0) {
+        if (n1 < 0)
+        {
             return std::string{"<format error>"};
         }
 
-        if (static_cast<std::size_t>(n1) < sizeof(stack_buf)) {
+        if (static_cast<std::size_t>(n1) < sizeof(stack_buf))
+        {
             return std::string(stack_buf, static_cast<std::size_t>(n1));
         }
 
@@ -137,7 +150,8 @@ namespace mini_log {
         const int n2 = std::vsnprintf(heap_buf.data(), heap_buf.size(), fmt, ap_copy2);
         va_end(ap_copy2);
 
-        if (n2 < 0) {
+        if (n2 < 0)
+        {
             return std::string{"<format error>"};
         }
 
@@ -147,21 +161,22 @@ namespace mini_log {
     }
 
     inline void log_impl(Level lv,
-                         const char *file,
+                         const char* file,
                          int line,
-                         const char *func,
-                         const std::string &text) {
+                         const char* func,
+                         const std::string& text)
+    {
         std::lock_guard lk(log_mutex());
 
-        auto &os = stream_for(lv);
+        auto& os = stream_for(lv);
 
         os << '[' << now_string() << ']'
-                << " [" << to_string(lv) << ']'
-                << " [T" << thread_id_short() << ']'
-                << ' ' << (file ? file : "<null-file>") << ':' << line
-                << " | " << (func ? func : "<null-func>")
-                << " | " << text
-                << '\n';
+            << " [" << to_string(lv) << ']'
+            << " [T" << thread_id_short() << ']'
+            << ' ' << (file ? file : "<null-file>") << ':' << line
+            << " | " << (func ? func : "<null-func>")
+            << " | " << text
+            << '\n';
 
         // demo/调试场景优先保证崩溃前日志可见。
         os.flush();
@@ -169,16 +184,17 @@ namespace mini_log {
 
     // printf 风格日志入口；宏通常会先过滤一次，这里再做防御性检查。
     inline void logf(Level lv,
-                     const char *file,
+                     const char* file,
                      int line,
-                     const char *func,
-                     const char *fmt, ...) MINI_LOG_PRINTF_ATTR(5, 6);
+                     const char* func,
+                     const char* fmt, ...) MINI_LOG_PRINTF_ATTR(5, 6);
 
     inline void logf(Level lv,
-                     const char *file,
+                     const char* file,
                      int line,
-                     const char *func,
-                     const char *fmt, ...) {
+                     const char* func,
+                     const char* fmt, ...)
+    {
         if (!should_log(lv))
             return;
 
@@ -191,8 +207,9 @@ namespace mini_log {
     }
 
     // 便于把支持 operator<< 的对象转给 printf 风格日志的 %s。
-    template<class T>
-    inline std::string to_string_stream(const T &v) {
+    template <class T>
+    inline std::string to_string_stream(const T& v)
+    {
         std::ostringstream oss;
         oss << v;
         return oss.str();
