@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 # 任何一步出错就立即停止，避免继续使用不完整的构建结果。
 set -euo pipefail
 
