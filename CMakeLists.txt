@@ -51,9 +51,7 @@ target_link_libraries(get_input
         error_code
 )
 
-add_executable(gtest_demo
-        src/main.cpp
-)
+add_executable(gtest_demo main.cpp)
 
 target_link_libraries(gtest_demo
         PRIVATE
@@ -69,7 +67,7 @@ install(TARGETS gtest_demo
 # CTest 提供 BUILD_TESTING 开关；远端只运行 demo 时可以设为 OFF。
 include(CTest)
 
-if(BUILD_TESTING)
+if (BUILD_TESTING)
     # 使用目标机上已经安装的 GoogleTest，配置和构建过程不再访问网络。
     # 如 GoogleTest 安装在非标准位置，可在配置时传入：
     #   -DGTest_ROOT=/path/to/gtest
@@ -77,16 +75,16 @@ if(BUILD_TESTING)
 
     # 新版 GTest 配置包使用 GTest::gtest_main，较旧的 CMake FindGTest
     # 模块可能只提供 GTest::Main；为测试目录选择实际存在的目标。
-    if(TARGET GTest::gtest_main)
+    if (TARGET GTest::gtest_main)
         set(TRAVEL_GTEST_MAIN_TARGET GTest::gtest_main)
-    elseif(TARGET GTest::Main)
+    elseif (TARGET GTest::Main)
         set(TRAVEL_GTEST_MAIN_TARGET GTest::Main)
-    else()
+    else ()
         message(FATAL_ERROR "GoogleTest was found, but no gtest_main target is available")
-    endif()
+    endif ()
 
     message(STATUS "Using system GoogleTest target: ${TRAVEL_GTEST_MAIN_TARGET}")
 
     # 测试目标独立放在 tests/，避免和主程序入口混在一起。
     add_subdirectory(tests)
-endif()
+endif ()
