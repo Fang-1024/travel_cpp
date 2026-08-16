@@ -1,87 +1,38 @@
-#!/usr/bin/env bash
+# 任何一步出错就立即停止，避免继续使用不完整的构建结果。
+set -euo pipefail
 
-# 在 RK3588/LubanCat 这类 Linux 目标机上构建并整理 demo 产物。
-# 常用覆盖项：
-#   BUILD_TYPE=Release ./build.sh
-#   BUILD_TESTING=OFF ./build.sh
-#   RUN_TESTS=0 ./build.sh
-#   CLEAN=1 JOBS=4 ./build.sh
-set -Eeuo pipefail
+# 得到项目根目录。这样无论从哪个目录运行本脚本，都能找到 CMakeLists.txt。
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "${SCRIPT_DIR}"
+# 所有构建文件统一放在项目根目录下的 build/ 中。
+# 最终程序位于 build/bin/，目录较浅，方便直接使用 GDB。
+BUILD_DIR="${PROJECT_DIR}/build"
 
-APP_NAME="gtest_demo"
-TEST_APP_NAME="test_demo"
-
-BUILD_TYPE="${BUILD_TYPE:-Debug}"
-BUILD_TESTING="${BUILD_TESTING:-ON}"
-RUN_TESTS="${RUN_TESTS:-1}"
-CLEAN="${CLEAN:-0}"
-
-BUILD_TYPE_LOWER="$(printf "%s" "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')"
-BUILD_DIR="${BUILD_DIR:-${SCRIPT_DIR}/build/${BUILD_TYPE_LOWER}}"
-DEPLOY_DIR="${DEPLOY_DIR:-${SCRIPT_DIR}/deploy/rk3588-${BUILD_TYPE_LOWER}}"
-JOBS="${JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)}"
-
-echo "Project dir : ${SCRIPT_DIR}"
-echo "Build type  : ${BUILD_TYPE}"
-echo "Build tests : ${BUILD_TESTING}"
-echo "Build dir   : ${BUILD_DIR}"
-echo "Deploy dir  : ${DEPLOY_DIR}"
-echo "Jobs        : ${JOBS}"
-echo
-
-if [[ "${CLEAN}" == "1" ]]; then
-    echo "Cleaning build and deploy directories..."
-    rm -rf "${BUILD_DIR}" "${DEPLOY_DIR}"
-fi
-
-echo "Configuring project..."
-cmake -S "${SCRIPT_DIR}" -B "${BUILD_DIR}" \
-    -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DBUILD_TESTING="${BUILD_TESTING}"
+echo "1/3 配置项目（Debug 模式）"
+cmake -S "${PROJECT_DIR}" -B "${BUILD_DIR}" \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DBUILD_TESTING=ON
 
 echo
-echo "Building project..."
-cmake --build "${BUILD_DIR}" --parallel "${JOBS}"
-
-APP_PATH="${BUILD_DIR}/bin/${APP_NAME}"
-TEST_APP_PATH="${BUILD_DIR}/bin/${TEST_APP_NAME}"
-
-if [[ ! -x "${APP_PATH}" ]]; then
-    echo "Error: executable not found: ${APP_PATH}" >&2
-    echo "Please check APP_NAME in build.sh and add_executable(...) in CMakeLists.txt." >&2
-    exit 1
-fi
-
-# 在构建目录中运行 CTest，确保能找到 CMake 生成的测试元数据。
-if [[ "${BUILD_TESTING}" != "OFF" && "${RUN_TESTS}" == "1" ]]; then
-    echo
-    echo "Running unit tests..."
-    cmake -E chdir "${BUILD_DIR}" ctest --output-on-failure
-fi
+echo "2/3 编译项目"
+cmake --build "${BUILD_DIR}" --parallel
 
 echo
-echo "Preparing deploy directory..."
-mkdir -p "${DEPLOY_DIR}/bin"
-cp "${APP_PATH}" "${DEPLOY_DIR}/bin/"
+echo "3/3 运行单元测试"
+# CTest 需要在构建目录中运行，才能找到 CMake 生成的测试信息。
+(
+    cd "${BUILD_DIR}"
+    ctest --output-on-failure
+)
 
 echo
-echo "Run app:"
-echo "  ${DEPLOY_DIR}/bin/${APP_NAME} --test_mode=demo"
-
-if [[ "${BUILD_TESTING}" != "OFF" ]]; then
-    echo
-    echo "Run all unit tests:"
-    echo "  cmake -E chdir ${BUILD_DIR} ctest --output-on-failure"
-
-    echo
-    echo "Run test binary directly:"
-    echo "  ${TEST_APP_PATH}"
-
-    echo
-    echo "Debug one test case:"
-    echo "  gdb --args ${TEST_APP_PATH} --gtest_filter=GetInputTest.ReadLongOptionEqualForm"
-fi
+echo "构建和测试完成。"
+echo
+echo "调试主程序："
+echo "  gdb --args ${BUILD_DIR}/bin/gtest_demo --test_mode=demo"
+echo
+echo "调试测试程序："
+echo "  gdb ${BUILD_DIR}/bin/test_demo"
+echo
+echo "只调试一个测试用例："
+echo "  gdb --args ${BUILD_DIR}/bin/test_demo --gtest_filter=GetInputTest.ReadLongOptionEqualForm"

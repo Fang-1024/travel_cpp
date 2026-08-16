@@ -3,23 +3,28 @@
 #include <string>
 #include <vector>
 
-#include "error_code.h"
-#include "get_input.h"
-#include "log.h"
+#include <travel_cpp/error_code.h>
+#include <travel_cpp/get_input.h>
+#include <travel_cpp/log.h>
 
-namespace {
+namespace
+{
     // 为 get_input 构造接近 main(argc, argv) 的测试输入。
-    // get_input 只移动 argv 指针，不修改字符串内容，因此可以直接引用 storage 的 buffer。
-    struct ArgvCase {
+    // get_input 只移动 argv 指针，不修改字符串内容，因此可以直接引用 storage 的
+    // buffer。
+    struct ArgvCase
+    {
         std::vector<std::string> storage;
-        std::vector<char *> argv;
+        std::vector<char*> argv;
         int argc = 0;
 
         explicit ArgvCase(std::vector<std::string> args)
-            : storage(std::move(args)), argc(static_cast<int>(storage.size())) {
+            : storage(std::move(args)), argc(static_cast<int>(storage.size()))
+        {
             argv.reserve(storage.size() + 1);
 
-            for (std::string &arg: storage) {
+            for (std::string& arg : storage)
+            {
                 argv.push_back(arg.data());
             }
 
@@ -29,7 +34,8 @@ namespace {
     };
 } // namespace
 
-TEST(GetInputTest, ReadLongOptionEqualForm) {
+TEST(GetInputTest, ReadLongOptionEqualForm)
+{
     ArgvCase args({
         "app",
         "--name=alice",
@@ -38,7 +44,8 @@ TEST(GetInputTest, ReadLongOptionEqualForm) {
 
     LOG_DEBUG("ReadLongOptionEqualForm");
     std::string output;
-    const auto code = input_args::get_input(args.argc, args.argv.data(), "--name", output);
+    const auto code =
+        input_args::get_input(args.argc, args.argv.data(), "--name", output);
 
     EXPECT_EQ(error_code::ErrorCode::Ok, code);
     EXPECT_EQ("alice", output);
@@ -50,7 +57,8 @@ TEST(GetInputTest, ReadLongOptionEqualForm) {
     EXPECT_EQ(nullptr, args.argv[2]);
 }
 
-TEST(GetInputTest, ReadLongOptionSeparatedForm) {
+TEST(GetInputTest, ReadLongOptionSeparatedForm)
+{
     ArgvCase args({
         "app",
         "--name",
@@ -59,7 +67,8 @@ TEST(GetInputTest, ReadLongOptionSeparatedForm) {
     });
 
     std::string output;
-    const auto code = input_args::get_input(args.argc, args.argv.data(), "--name", output);
+    const auto code =
+        input_args::get_input(args.argc, args.argv.data(), "--name", output);
 
     EXPECT_EQ(error_code::ErrorCode::Ok, code);
     EXPECT_EQ("alice", output);
@@ -71,7 +80,8 @@ TEST(GetInputTest, ReadLongOptionSeparatedForm) {
     EXPECT_EQ(nullptr, args.argv[2]);
 }
 
-TEST(GetInputTest, ReadShortOptionSeparatedForm) {
+TEST(GetInputTest, ReadShortOptionSeparatedForm)
+{
     ArgvCase args({
         "app",
         "-n",
@@ -79,7 +89,8 @@ TEST(GetInputTest, ReadShortOptionSeparatedForm) {
     });
 
     std::string output;
-    const auto code = input_args::get_input(args.argc, args.argv.data(), "-n", output);
+    const auto code =
+        input_args::get_input(args.argc, args.argv.data(), "-n", output);
 
     EXPECT_EQ(error_code::ErrorCode::Ok, code);
     EXPECT_EQ("alice", output);
@@ -89,7 +100,8 @@ TEST(GetInputTest, ReadShortOptionSeparatedForm) {
     EXPECT_EQ(nullptr, args.argv[1]);
 }
 
-TEST(GetInputTest, ReturnUnknownWhenOptionDoesNotExist) {
+TEST(GetInputTest, ReturnUnknownWhenOptionDoesNotExist)
+{
     ArgvCase args({
         "app",
         "--other",
@@ -97,7 +109,8 @@ TEST(GetInputTest, ReturnUnknownWhenOptionDoesNotExist) {
     });
 
     std::string output = "unchanged";
-    const auto code = input_args::get_input(args.argc, args.argv.data(), "--name", output);
+    const auto code =
+        input_args::get_input(args.argc, args.argv.data(), "--name", output);
 
     EXPECT_EQ(error_code::ErrorCode::Unknown, code);
 
@@ -109,19 +122,22 @@ TEST(GetInputTest, ReturnUnknownWhenOptionDoesNotExist) {
     EXPECT_STREQ("value", args.argv[2]);
 }
 
-TEST(GetInputTest, ReturnUnknownWhenOptionHasNoValue) {
+TEST(GetInputTest, ReturnUnknownWhenOptionHasNoValue)
+{
     ArgvCase args({
         "app",
         "--name",
     });
 
     std::string output;
-    const auto code = input_args::get_input(args.argc, args.argv.data(), "--name", output);
+    const auto code =
+        input_args::get_input(args.argc, args.argv.data(), "--name", output);
 
     EXPECT_EQ(error_code::ErrorCode::Unknown, code);
 }
 
-TEST(GetInputTest, ReturnParseFailedWhenNextArgumentLooksLikeOption) {
+TEST(GetInputTest, ReturnParseFailedWhenNextArgumentLooksLikeOption)
+{
     ArgvCase args({
         "app",
         "--name",
@@ -129,25 +145,24 @@ TEST(GetInputTest, ReturnParseFailedWhenNextArgumentLooksLikeOption) {
     });
 
     std::string output;
-    const auto code = input_args::get_input(args.argc, args.argv.data(), "--name", output);
+    const auto code =
+        input_args::get_input(args.argc, args.argv.data(), "--name", output);
 
     // "--name --other" 中的 "--other" 更像另一个选项，不能当作 value。
     EXPECT_EQ(error_code::ErrorCode::ParseFailed, code);
 }
 
-TEST(GetInputTest, SupportMultipleCandidateOptionNames) {
+TEST(GetInputTest, SupportMultipleCandidateOptionNames)
+{
     ArgvCase args({
         "app",
         "-n=bob",
     });
 
     std::string output;
-    const auto code = input_args::get_input(
-        args.argc,
-        args.argv.data(),
-        std::vector<std::string>{"--name", "-n"},
-        output
-    );
+    const auto code =
+        input_args::get_input(args.argc, args.argv.data(),
+                              std::vector<std::string>{"--name", "-n"}, output);
 
     EXPECT_EQ(error_code::ErrorCode::Ok, code);
     EXPECT_EQ("bob", output);
