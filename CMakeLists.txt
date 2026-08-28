@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(gtest_demo LANGUAGES CXX)
+project(app_demo LANGUAGES CXX)
 
 # GoogleTest 1.17 和当前示例代码都使用 C++17。
 set(CMAKE_CXX_STANDARD 17)
@@ -51,16 +51,16 @@ target_link_libraries(get_input
         error_code
 )
 
-add_executable(gtest_demo main.cpp)
+add_executable(app_demo main.cpp)
 
-target_link_libraries(gtest_demo
+target_link_libraries(app_demo
         PRIVATE
         lib_log
         error_code
         get_input
 )
 
-install(TARGETS gtest_demo
+install(TARGETS app_demo
         RUNTIME DESTINATION bin
 )
 

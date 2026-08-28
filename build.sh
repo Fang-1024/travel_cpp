@@ -29,7 +29,7 @@ echo
 echo "构建和测试完成。"
 echo
 echo "调试主程序："
-echo "  gdb --args ${BUILD_DIR}/bin/gtest_demo --test_mode=demo"
+echo "  gdb --args ${BUILD_DIR}/bin/app_demo --test_mode=demo"
 echo
 echo "调试测试程序："
 echo "  gdb ${BUILD_DIR}/bin/test_demo"
