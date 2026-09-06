@@ -42,7 +42,9 @@ TEST(GetInputTest, ReadLongOptionEqualForm)
         "--other",
     });
 
-    LOG_DEBUG("ReadLongOptionEqualForm");
+    mini_log::Logger logger("GetInputTest");
+
+    logger.debug("ReadLongOptionEqualForm");
     std::string output;
     const auto code =
         input_args::get_input(args.argc, args.argv.data(), "--name", output);
