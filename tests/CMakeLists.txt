@@ -1,6 +1,6 @@
 # 单元测试使用独立可执行文件，避免测试入口影响 demo 主程序。
 add_executable(test_demo
-        test_demo.cpp
+        test_logger.cpp
 )
 
 target_link_libraries(test_demo
