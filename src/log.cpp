@@ -8,7 +8,7 @@
 
 namespace mini_log
 {
-    Logger::Logger(const std::string& name) : name_(name)
+    Logger::Logger(const std::string& name, const Level min_level) : name_(name), min_level_(min_level)
     {
     }
 
@@ -32,15 +32,36 @@ namespace mini_log
         log(Level::Error, message);
     }
 
-    void Logger::log(Level currrent_level, const std::string& message) const
+    void Logger::log(const Level current_level, const std::string& message) const
     {
-        std::ostream& output = (currrent_level == Level::Warn || currrent_level == Level::Error)
-                                   ? std::cerr
-                                   : std::cout;
+        // 若等级不满足打印要求，则直接跳过
+        if (!should_log(current_level))
+        {
+            return;
+        }
+
+        std::ostream& output = current_level == Level::Warn || current_level == Level::Error ? std::cerr : std::cout;
         output
             << " [" << name_ << "] "
             << message
             << '\n';
         output.flush();
+    }
+
+    // 修改日志等级
+    void Logger::set_min_level(const Level level)
+    {
+        min_level_ = level;
+    }
+
+    // 查询日志等级
+    Level Logger::min_level() const
+    {
+        return min_level_;
+    }
+
+    bool Logger::should_log(const Level current_level) const
+    {
+        return min_level_ <= current_level;
     }
 }
